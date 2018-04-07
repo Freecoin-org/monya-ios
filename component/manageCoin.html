@@ -1,0 +1,276 @@
+<v-ons-page data-page="manageCoin">
+  <custom-bar title="コインの管理">
+    <v-ons-toolbar-button @click="resetCur=true">
+      <v-ons-icon icon="fa-eraser"></v-ons-icon>
+    </v-ons-toolbar-button>
+    <v-ons-toolbar-button @click="requirePassword=true">
+      <v-ons-icon icon="ion-checkmark"></v-ons-icon>
+    </v-ons-toolbar-button>
+  </custom-bar>
+  <v-ons-list>
+    <v-ons-list-header>利用可能</v-ons-list-header>
+    <v-ons-list-item class="coin" v-for="c in coins" v-if="c.usable">
+      <div class="left"><img :src="c.icon"/></div>
+      <div class="center">
+        <div class="screenName">{{c.screenName}}</div>
+        <v-ons-button modifier="quiet" @click="showInfo(c.coinId)"><v-ons-icon icon="ion-ios-information"></v-ons-icon></v-ons-button>
+        <v-ons-button modifier="quiet" @click="editCoinParam(c.coinId)"><v-ons-icon icon="ion-edit"></v-ons-icon></v-ons-button>
+      </div>
+      <div class="right">
+        <v-ons-checkbox v-model="c.usable" @click="edited"></v-ons-checkbox>
+      </div>
+    </v-ons-list-item>
+    <v-ons-list-header>無効</v-ons-list-header>
+    <v-ons-list-item class="coin" v-for="c in coins" v-if="!c.usable" modifier="small">
+      <div class="left"><img :src="c.icon"/></div>
+      <div class="center">
+        <div class="screenName">{{c.screenName}}</div>
+        <v-ons-button modifier="quiet" @click="showInfo(c.coinId)"><v-ons-icon icon="ion-ios-information"></v-ons-icon></v-ons-button>
+        <v-ons-button modifier="quiet" @click="editCoinParam(c.coinId)"><v-ons-icon icon="ion-edit"></v-ons-icon></v-ons-button>
+      </div>
+      <div class="right">
+        <v-ons-checkbox v-model="c.usable" @click="edited"></v-ons-checkbox>
+      </div>
+    </v-ons-list-item>
+
+    <v-ons-list-header>拡張機能</v-ons-list-header>
+    <v-ons-list-item v-for="x in extensions">
+      <div class="left"><img :src="x.icon"/></div>
+      <div class="center">
+        <div class="screenName">{{x.name}}</div>
+      </div>
+      <div class="right">
+        <v-ons-checkbox v-model="x.usable" @click="edited"></v-ons-checkbox>
+      </div>
+    </v-ons-list-item>
+
+    <v-ons-list-item><!-- spacer for toast--></v-ons-list-item>
+  </v-ons-list>
+  <v-ons-alert-dialog
+    modifier="rowfooter"
+    :visible.sync="requirePassword"
+    >
+    <span slot="title">パスワード</span>
+    <p>パスワードを入力してください。コインを削除すると、残高は失われませんが、ラベルなど、その他の情報は失われる可能性があります。</p>
+    <v-ons-input placeholder="パスワード" v-model="password" type="password" :class="{shake:incorrect}"></v-ons-input>
+    <template slot="footer">
+      <div class="alert-dialog-button" @click="requirePassword=false">やめる</div>
+      <div class="alert-dialog-button" @click="operateCoins">続行</div>
+    </template>
+  </v-ons-alert-dialog>
+  <v-ons-alert-dialog
+    modifier="rowfooter"
+    :visible.sync="resetCur"
+    >
+    <span slot="title">パラメータをリセット</span>
+    <p>コインパラメータをリセットしますか？編集した内容は失われます</p>
+    <template slot="footer">
+      <div class="alert-dialog-button" @click="resetCur=false">やめる</div>
+      <div class="alert-dialog-button" @click="reset">続行</div>
+    </template>
+  </v-ons-alert-dialog>
+
+  <v-ons-toast :visible.sync="unsaved" animation="ascend">
+    まだ保存されていません
+    <button @click="requirePassword=true">保存</button>
+  </v-ons-toast>
+
+  <v-ons-modal :visible="loading">
+    <p style="text-align: center">
+      計算中。計算能力により時間がかかりますが終了しないでください。 
+      <br><br>
+      <div class="spinner"></div>
+    </p>
+  </v-ons-modal>
+  <v-ons-dialog cancelable
+                :visible.sync="infoDlg"
+                >
+    <v-ons-list>
+      <v-ons-list-item>
+        <div class="center">コインID</div>
+        <div class="right">{{info.coinId}}</div>
+      </v-ons-list-item>
+      <v-ons-list-item>
+        <div class="center">単位</div>
+        <div class="right">{{info.unit}}</div>
+      </v-ons-list-item>
+      <v-ons-list-item @click="changeServer">
+        <div class="center">APIエンドポイント</div>
+        <div class="right">{{info.apiEndpoint}}</div>
+      </v-ons-list-item>
+      <v-ons-list-header>ブロック</v-ons-list-header>
+      <v-ons-list-item v-for="b in info.blocks" @click="openBlock(b.hash)">
+        <div class="center">{{b.height}}</div>
+        <div class="right"><timestamp :timestamp="b.time"></timestamp></div>
+      </v-ons-list-item>
+    </v-ons-list>
+  </v-ons-dialog>
+  
+  <v-ons-dialog cancelable
+                :visible.sync="editDlg"
+                >
+    <v-ons-list>
+      <div v-if="editDlg">
+        <v-ons-list-item>
+          <div class="center">コインID</div>
+          <div class="right">
+            <v-ons-input v-model="c.coinId" placeholder="コイン表示名"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">コイン表示名</div>
+          <div class="right">
+            <v-ons-input v-model="c.coinScreenName" placeholder="コイン表示名"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        
+        <v-ons-list-item>
+          <div class="center">単位</div>
+          <div class="right">
+            <v-ons-input v-model="c.unit" placeholder="単位"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">単位の簡単な表記</div>
+          <div class="right">
+            <v-ons-input v-model="c.unitEasy" placeholder="簡単な単位"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">SegWit</div>
+          <div class="right">
+            <v-ons-switch v-model="enableSegwit"></v-ons-switch>
+          </div>
+        </v-ons-list-item>
+        <div v-show="enableSegwit">
+          <v-ons-list-item>
+            <div class="center">BIP 49 コインタイプ</div>
+            <div class="right">
+              <v-ons-input v-model="c.bip49.coinType" type="number"></v-ons-input>
+            </div>
+          </v-ons-list-item>
+          <v-ons-list-item>
+            <div class="center">BIP 49 アカウント番号</div>
+            <div class="right">
+              <v-ons-input v-model="c.bip49.account" type="number"></v-ons-input>
+            </div>
+          </v-ons-list-item>
+        </div>
+        <div v-show="!enableSegwit">
+          <v-ons-list-item>
+            <div class="center">BIP 44 コインタイプ</div>
+            <div class="right">
+              <v-ons-input v-model="c.bip44.coinType" type="number"></v-ons-input>
+            </div>
+          </v-ons-list-item>
+          <v-ons-list-item>
+            <div class="center">BIP 44 アカウント番号</div>
+            <div class="right">
+              <v-ons-input v-model="c.bip44.account" type="number"></v-ons-input>
+            </div>
+          </v-ons-list-item>
+        </div>
+        <v-ons-list-item>
+          <div class="center">BIP 21 スキーム</div>
+          <div class="right">
+            <v-ons-input v-model="c.bip21" placeholder="BIP21"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">手数料初期値</div>
+          <div class="right">
+            <v-ons-input v-model="c.defaultFeeSatPerByte" type="number"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item v-if="c.apiEndpoints">
+          <div class="center">APIエンドポイント</div>
+          <div class="right">
+            <v-ons-input v-model="c.apiEndpoints[0].url" placeholder="APIエンドポイント"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item v-if="c.apiEndpoints">
+          <div class="center">エクスプローラ</div>
+          <div class="right">
+            <v-ons-input v-model="c.apiEndpoints[0].explorer" placeholder="エクスプローラ"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-header>ネットワーク設定</v-ons-list-header>
+        <v-ons-list-item>
+          <div class="center">署名プレフィックス</div>
+          <div class="right">
+            <v-ons-input v-model="messagePrefix" placeholder="署名プレフィックス"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">BIP32マスター公開鍵(uint32_t 10進数)</div>
+          <div class="right">
+            <v-ons-input v-model="c.network.bip32.public" type="number"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">BIP32マスター秘密鍵(uint32_t 10進数)</div>
+          <div class="right">
+            <v-ons-input v-model="c.network.bip32.private" type="number"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">uint8_t PubKeyHash</div>
+          <div class="right">
+            <v-ons-input v-model="c.network.pubKeyHash" type="number"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">uint8_t ScriptHash</div>
+          <div class="right">
+            <v-ons-input v-model="c.network.scriptHash" type="number"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">uint8_t WIF</div>
+          <div class="right">
+            <v-ons-input v-model="c.network.wif" type="number"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        
+        <v-ons-list-header>価格設定</v-ons-list-header>
+        <v-ons-list-item>
+          <div class="center">JSON API URL</div>
+          <div class="right">
+            <v-ons-input v-model="c.price.url" placeholder="URL"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">JSON Path</div>
+          <div class="right">
+            <v-ons-input v-model="c.price.jsonPath" placeholder="JSON Path"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">基軸通貨ID</div>
+          <div class="right">
+            <v-ons-input v-model="c.price.fiat" placeholder="Fiat ID"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-header></v-ons-list-header>
+        <v-ons-list-item>
+          <div class="center">CPエンドポイントURL</div>
+          <div class="right">
+            <v-ons-input v-model="c.counterpartyEndpoint" placeholder="CP Endpoint"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">ライブラリ</div>
+          <div class="right">
+            <v-ons-input v-model="c.lib" placeholder="空欄でbtc"></v-ons-input>
+          </div>
+        </v-ons-list-item>
+        <v-ons-list-item>
+          <div class="center">次回の起動時から適用</div>
+          <div class="right">
+            <v-ons-button @click="save(c.coinId)">保存</v-ons-button>
+          </div>
+        </v-ons-list-item>
+      </div>
+    </v-ons-list>    
+  </v-ons-dialog>
+</v-ons-page>
