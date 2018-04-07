@@ -735,6 +735,8 @@ $zaifPayLogoSize:200px;
     background-image:url(../res/sand.jpg);
     background-position:center center;
     background-repeat:repeat;
+    background-size: contain;
+  
   }
   ons-navigator.realmona & .page__background{
     background-color:#f40298;
