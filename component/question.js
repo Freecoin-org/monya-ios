@@ -20,27 +20,27 @@ const qListJa=[
 		"text": "以前にこのアプリケーションを利用したことがありますか？",
 		"answers": [
 			{
-				"label": "ないです",
+				"label": "ないです(迫真)",
 				"value": false,
 				"to": 2
 			},
 			{
-				"label": "ありますあります",
+				"label": "ありますねぇ！",
 				"value": true,
 				"to": -3
 			}
 		]
 	},
 	{
-		"text": "初期設定と、ユーザーの暗号通貨に対する知識を測るためにいくつかの質問に答えてください。",
+		"text": "開発者である私と一緒に始めましょう！",
 		"answers": [
 			{
-				"label": "わかりました。",
+				"label": "はいっ！！",
 				"value": true,
 				"to": 3
 			},
 			{
-				"label": "自分で設定するので答えません。",
+				"label": "やだよそんなの",
 				"value": false,
 				"to": -2
 			}
@@ -300,15 +300,15 @@ const qListEn=[
 		]
 	},
 	{
-		"text": "Could you answer some question to know about you?",
+		"text": "Let's get started with me, the developer of Monya.",
 		"answers": [
 			{
-				"label": "Okay",
+				"label": "Okaaaaay",
 				"value": true,
 				"to": 3
 			},
 			{
-				"label": "No, I do manually",
+				"label": "No way!",
 				"value": false,
 				"to": -2
 			}
