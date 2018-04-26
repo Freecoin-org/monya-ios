@@ -10,7 +10,6 @@ docs/wallet/dist
 component/ja
 component/en
 cordovaProj/node_modules
-cordovaProj/platforms
 cordovaProj/plugins
 electron/node_modules
 electron/dist
